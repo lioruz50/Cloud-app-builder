@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="StockSense">
+<title>StockSense Pro</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=IBM+Plex+Mono:wght@300;400;600&family=Heebo:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0c10;--surface:#111318;--s2:#181c24;--border:#1e2433;
+  --accent:#c8a84b;--green:#2ecc71;--red:#e74c3c;--yellow:#f39c12;--blue:#4b8ec8;
+  --text:#e8eaf0;--muted:#6b7280;
+  --fm:'Playfair Display',serif;--mono:'IBM Plex Mono',monospace;--body:'Heebo',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 15% 15%,rgba(200,168,75,.07) 0%,transparent 50%),radial-gradient(ellipse at 85% 85%,rgba(75,142,200,.05) 0%,transparent 50%);pointer-events:none;z-index:0;}
+.wrap{max-width:1120px;margin:0 auto;padding:0 18px;position:relative;z-index:1;}
+header{padding:28px 0 20px;border-bottom:1px solid var(--border);margin-bottom:32px;}
+.logo{font-family:var(--fm);font-size:1.75rem;font-weight:900;color:var(--accent);}
+.logo span{font-family:var(--mono);font-size:.6rem;color:var(--muted);letter-spacing:3px;display:block;margin-top:2px;}
+.search-row{display:flex;gap:10px;margin-bottom:10px;}
+.si{flex:1;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:1rem;padding:13px 18px;border-radius:6px;outline:none;transition:border-color .2s;letter-spacing:2px;text-transform:uppercase;direction:ltr;}
+.si:focus{border-color:var(--accent);}
+.sb{background:var(--accent);color:#0a0c10;border:none;padding:13px 26px;font-family:var(--mono);font-size:.78rem;font-weight:700;letter-spacing:2px;border-radius:6px;cursor:pointer;white-space:nowrap;transition:background .2s;}
+.sb:hover{background:#d4b45e;}
+.sb:disabled{opacity:.45;cursor:not-allowed;}
+.qpicks{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:32px;}
+.ql{font-family:var(--mono);font-size:.58rem;color:var(--muted);letter-spacing:2px;}
+.qb{background:var(--s2);border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:.65rem;padding:4px 10px;border-radius:4px;cursor:pointer;transition:all .15s;}
+.qb:hover{border-color:var(--accent);color:var(--accent);}
+.loading{display:none;text-align:center;padding:60px 0;}
+.loading.on{display:block;}
+.spin{width:42px;height:42px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:sp .8s linear infinite;margin:0 auto 14px;}
+@keyframes sp{to{transform:rotate(360deg)}}
+.ltxt{font-family:var(--mono);color:var(--muted);font-size:.78rem;letter-spacing:2px;}
+.err{display:none;background:rgba(231,76,60,.1);border:1px solid rgba(231,76,60,.3);border-radius:6px;padding:12px 16px;margin-bottom:18px;font-family:var(--mono);font-size:.75rem;color:#e74c3c;}
+.err.on{display:block;}
+.res{display:none;}
+.res.on{display:block;animation:fi .5s ease;}
+@keyframes fi{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.stitle{font-family:var(--mono);font-size:.65rem;color:var(--accent);letter-spacing:3px;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:10px;}
+.stitle::after{content:'';flex:1;height:1px;background:var(--border);}
+.shead{display:grid;grid-template-columns:1fr auto;gap:18px;align-items:start;margin-bottom:26px;padding-bottom:26px;border-bottom:1px solid var(--border);}
+.sname{font-family:var(--fm);font-size:1.25rem;font-weight:700;margin-bottom:3px;}
+.sticker{color:var(--accent);font-family:var(--mono);letter-spacing:2px;font-size:.78rem;}
+.price{font-family:var(--mono);font-size:2.3rem;font-weight:600;line-height:1;text-align:left;direction:ltr;}
+.mstatus{font-family:var(--mono);font-size:.65rem;color:var(--muted);text-align:left;margin-top:4px;}
+.ctabs{display:flex;gap:5px;margin-top:10px;flex-wrap:wrap;}
+.ct{background:var(--s2);border:1px solid var(--border);border-radius:4px;padding:4px 10px;font-family:var(--mono);font-size:.62rem;cursor:pointer;color:var(--muted);transition:all .15s;}
+.ct.on{border-color:var(--accent);color:var(--accent);background:rgba(200,168,75,.1);}
+.cval{font-family:var(--mono);font-size:.88rem;font-weight:600;margin-top:7px;direction:ltr;text-align:left;}
+.ctrls{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center;}
+.pb,.ctb{background:var(--s2);border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:.62rem;padding:5px 11px;border-radius:4px;cursor:pointer;transition:all .15s;}
+.pb.on,.ctb.on{border-color:var(--accent);color:var(--accent);background:rgba(200,168,75,.08);}
+.fmb{background:var(--s2);border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:.6rem;padding:4px 9px;border-radius:4px;cursor:pointer;transition:all .15s;}
+.fmb.on{border-color:var(--blue);color:var(--blue);background:rgba(75,142,200,.08);}
+.periodtab{background:var(--s2);border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:.6rem;padding:4px 9px;border-radius:4px;cursor:pointer;transition:all .15s;}
+.periodtab.on{border-color:var(--green);color:var(--green);background:rgba(46,204,113,.08);}
+.sep{font-family:var(--mono);font-size:.55rem;color:var(--border);margin:0 2px;}
+.chart-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:26px;height:270px;}
+.mgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:26px;}
+.mc{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:13px 11px;}
+.mc.hl{border-color:rgba(200,168,75,.4);}
+.mlb{font-size:.6rem;color:var(--muted);margin-bottom:3px;font-family:var(--mono);}
+.mv{font-family:var(--mono);font-size:1rem;font-weight:600;direction:ltr;}
+.badge{font-size:.52rem;padding:2px 5px;border-radius:3px;font-family:var(--mono);display:inline-block;margin-top:3px;}
+.bg{background:rgba(46,204,113,.14);color:var(--green);}
+.bw{background:rgba(243,156,18,.14);color:var(--yellow);}
+.bb{background:rgba(231,76,60,.14);color:var(--red);}
+.r40{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:18px 22px;margin-bottom:26px;}
+.r40score{font-family:var(--mono);font-size:3rem;font-weight:600;direction:ltr;line-height:1;}
+.r40bar-bg{background:var(--border);border-radius:4px;height:7px;margin:10px 0 5px;overflow:hidden;}
+.r40bar{height:100%;border-radius:4px;transition:width .9s ease;}
+.r40labels{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.52rem;color:var(--muted);}
+.vcard{border-radius:8px;padding:22px 26px;margin-bottom:26px;border-top:4px solid var(--accent);background:var(--surface);border-left:1px solid var(--border);border-right:1px solid var(--border);border-bottom:1px solid var(--border);}
+.vinner{display:grid;grid-template-columns:110px 1fr 80px;gap:20px;align-items:start;}
+.vbadge{font-family:var(--fm);font-size:1.8rem;font-weight:900;margin-bottom:6px;}
+.vbadge.buy{color:var(--green);}
+.vbadge.sell{color:var(--red);}
+.vbadge.hold{color:var(--yellow);}
+.vscore-big{font-family:var(--mono);font-size:2.2rem;font-weight:700;color:var(--accent);text-align:center;line-height:1;}
+.vscore-lbl{font-family:var(--mono);font-size:.55rem;color:var(--muted);text-align:center;margin-top:2px;}
+.vdiv{border-right:1px solid var(--border);padding-right:20px;}
+.vtext{font-size:.88rem;line-height:1.75;color:var(--text);margin-bottom:10px;}
+.vpoints{font-size:.78rem;line-height:1.9;color:var(--muted);}
+.vpoints .pos{color:var(--green);}
+.vpoints .neg{color:var(--red);}
+.sgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin-bottom:26px;}
+.si2{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:11px 12px;}
+.slb{font-size:.58rem;color:var(--muted);font-family:var(--mono);margin-bottom:5px;}
+.sbar-bg{background:var(--border);border-radius:3px;height:4px;overflow:hidden;}
+.sbar{height:100%;border-radius:3px;transition:width .8s ease;}
+.sval{font-family:var(--mono);font-size:.78rem;font-weight:600;margin-top:4px;}
+.footnote{font-family:var(--mono);font-size:.55rem;color:#3a3f4f;text-align:center;padding:14px 0 28px;border-top:1px solid #12151c;margin-top:6px;}
+@media(max-width:768px){
+  .mgrid{grid-template-columns:repeat(2,1fr);}
+  .vinner{grid-template-columns:1fr;text-align:center;}
+  .vdiv{border-right:none;border-top:1px solid var(--border);padding-right:0;padding-top:14px;}
+  .shead{grid-template-columns:1fr;}
+  .price{font-size:1.9rem;}
+  .sgrid{grid-template-columns:repeat(2,1fr);}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">StockSense <span>// ניתוח פונדמנטלי · PRO</span></div>
+  </header>
+  <div class="search-row">
+    <input class="si" id="ti" placeholder="AAPL · TSLA · TEVA.TA · NICE.TA ..." />
+    <button class="sb" id="ab" onclick="go()">נתח ←</button>
+  </div>
+  <div class="qpicks">
+    <span class="ql">מהיר:</span>
+    <button class="qb" onclick="qs('AAPL')">AAPL</button>
+    <button class="qb" onclick="qs('NVDA')">NVDA</button>
+    <button class="qb" onclick="qs('MSFT')">MSFT</button>
+    <button class="qb" onclick="qs('TSLA')">TSLA</button>
+    <button class="qb" onclick="qs('GOOGL')">GOOGL</button>
+    <button class="qb" onclick="qs('AMZN')">AMZN</button>
+    <button class="qb" onclick="qs('NICE.TA')">נייס ת"א</button>
+    <button class="qb" onclick="qs('TEVA.TA')">טבע ת"א</button>
+  </div>
+  <div class="err" id="eb"></div>
+  <div class="loading" id="ls"><div class="spin"></div><div class="ltxt" id="lt">מנתח...</div></div>
+  <div class="res" id="res">
+    <div class="shead">
+      <div>
+        <div class="sname" id="cn">--</div>
+        <div class="sticker" id="tk">--</div>
+        <div class="ctabs">
+          <span class="ct on" onclick="scm('1d',this)">יום</span>
+          <span class="ct" onclick="scm('1w',this)">שבוע</span>
+          <span class="ct" onclick="scm('1m',this)">חודש</span>
+          <span class="ct" onclick="scm('3m',this)">3M</span>
+          <span class="ct" onclick="scm('1y',this)">שנה</span>
+          <span class="ct" onclick="scm('ytd',this)">YTD</span>
+        </div>
+        <div class="cval" id="cv">--</div>
+      </div>
+      <div>
+        <div class="price" id="cp">--</div>
+        <div class="mstatus" id="ms">--</div>
+      </div>
+    </div>
+    <div class="stitle">// גרף מחיר</div>
+    <div class="ctrls">
+      <button class="pb on" onclick="sp('1mo',this)">1M</button>
+      <button class="pb" onclick="sp('3mo',this)">3M</button>
+      <button class="pb" onclick="sp('6mo',this)">6M</button>
+      <button class="pb" onclick="sp('1y',this)">1Y</button>
+      <button class="pb" onclick="sp('2y',this)">2Y</button>
+      <button class="pb" onclick="sp('5y',this)">5Y</button>
+    </div>
+    <div class="chart-box"><canvas id="pc"></canvas></div>
+    <div class="stitle">// ניתוח פונדמנטלי – גרף</div>
+    <div class="ctrls">
+      <button class="fmb on" onclick="sfm('revenue',this)">הכנסות</button>
+      <button class="fmb" onclick="sfm('grossProfit',this)">רווח גולמי</button>
+      <button class="fmb" onclick="sfm('operatingIncome',this)">רווח תפעולי</button>
+      <button class="fmb" onclick="sfm('netIncome',this)">רווח נקי</button>
+      <button class="fmb" onclick="sfm('ebitda',this)">EBITDA</button>
+      <button class="fmb" onclick="sfm('fcf',this)">FCF</button>
+      <span class="sep">|</span>
+      <button class="periodtab on" onclick="sft('annual',this)">שנתי</button>
+      <button class="periodtab" onclick="sft('quarterly',this)">רבעוני</button>
+      <span class="sep">|</span>
+      <button class="ctb on" onclick="sct('bar',this)">בר</button>
+      <button class="ctb" onclick="sct('line',this)">קו</button>
+    </div>
+    <div class="chart-box"><canvas id="fc"></canvas></div>
+    <div class="stitle">// מכפילים · שולי רווח · יעילות</div>
+    <div class="mgrid" id="mg"></div>
+    <div class="stitle">// חוק ה-40 (Rule of 40)</div>
+    <div class="r40">
+      <div style="display:grid;grid-template-columns:130px 1fr;gap:20px;align-items:center;">
+        <div>
+          <div style="font-size:.58rem;color:var(--muted);font-family:var(--mono);margin-bottom:2px;">צמיחה + שולי תפעול</div>
+          <div class="r40score" id="r40s">--</div>
+          <div class="badge" id="r40b" style="margin-top:5px;">--</div>
+        </div>
+        <div>
+          <div style="font-size:.75rem;color:var(--muted);line-height:1.8;white-space:pre-line;" id="r40t">--</div>
+          <div class="r40bar-bg"><div class="r40bar" id="r40bar" style="width:0"></div></div>
+          <div class="r40labels"><span>0</span><span style="color:var(--yellow)">20</span><span style="color:var(--green)">40</span><span>80+</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="stitle">// ניקוד לפי קטגוריה</div>
+    <div class="sgrid" id="sg"></div>
+    <div class="stitle">// המלצת מערכת – ניתוח מלא</div>
+    <div class="vcard">
+      <div class="vinner">
+        <div>
+          <div class="vbadge" id="vb">--</div>
+          <div style="font-size:.62rem;color:var(--muted);font-family:var(--mono);" id="vstrength">--</div>
+        </div>
+        <div class="vdiv">
+          <div class="vtext" id="vt">--</div>
+          <div class="vpoints" id="vp">--</div>
+        </div>
+        <div>
+          <div class="vscore-big" id="vs">--</div>
+          <div class="vscore-lbl">ציון כולל</div>
+          <div class="vscore-lbl">/ 100</div>
+        </div>
+      </div>
+    </div>
+    <div class="footnote" id="fn">// נתונים: Yahoo Finance · המידע לצורכי לימוד בלבד · לא ייעוץ השקעות מורשה</div>
+  </div>
+</div>
+<script>
+let PC=null,FC=null,SD=null;
+let curPeriod='1mo',curFM='revenue',curCT='bar',curFT='annual',curCM='1d';
+let PH={};
+document.getElementById('ti').addEventListener('keydown',e=>{if(e.key==='Enter')go();});
+function qs(t){document.getElementById('ti').value=t;go();}
+async function pFetch(url){
+  const px=[
+    ()=>fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`),
+    ()=>fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`),
+    ()=>fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`),
+  ];
+  for(const p of px){
+    try{
+      const r=await p();if(!r.ok)continue;
+      const t=await r.text();
+      let o;try{o=JSON.parse(t);}catch{continue;}
+      if(o.contents){try{o=JSON.parse(o.contents);}catch{continue;}}
+      return o;
+    }catch{continue;}
+  }
+  throw new Error('לא ניתן להתחבר. נסה שוב.');
+}
+async function fPrice(ticker,period){
+  const im={'1mo':'1d','3mo':'1d','6mo':'1wk','1y':'1wk','2y':'1mo','5y':'1mo'};
+  const d=await pFetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${im[period]}&range=${period}`);
+  if(!d?.chart?.result?.length)throw new Error('סימול לא נמצא. לת"א הוסף .TA');
+  const r=d.chart.result[0];
+  return{ts:r.timestamp,closes:r.indicators.quote[0].close,meta:r.meta};
+}
+async function fFund(ticker){
+  try{
+    const d=await pFetch(`https://query1.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=financialData,defaultKeyStatistics,incomeStatementHistory,incomeStatementHistoryQuarterly,cashflowStatementHistory,cashflowStatementHistoryQuarterly,balanceSheetHistory`);
+    return d?.quoteSummary?.result?.[0]||null;
+  }catch{return null;}
+}
+async function go(){
+  const ticker=document.getElementById('ti').value.trim().toUpperCase();
+  if(!ticker)return;
+  document.getElementById('res').classList.remove('on');
+  document.getElementById('eb').classList.remove('on');
+  document.getElementById('ls').classList.add('on');
+  document.getElementById('ab').disabled=true;
+  PH={};
+  try{
+    lt('מושך נתוני מחיר...');
+    const pd=await fPrice(ticker,'1mo');
+    PH['1mo']=pd;
+    lt('מושך נתונים פונדמנטליים...');
+    const fund=await fFund(ticker);
+    SD={ticker,meta:pd.meta,fund,cur:pd.meta.currency||'USD'};
+    curPeriod='1mo';curFM='revenue';curCT='bar';curFT='annual';curCM='1d';
+    renderAll();
+  }catch(e){
+    const b=document.getElementById('eb');
+    b.textContent=`⚠ ${e.message}`;
+    b.classList.add('on');
+  }finally{
+    document.getElementById('ls').classList.remove('on');
+    document.getElementById('ab').disabled=false;
+  }
+}
+function lt(t){document.getElementById('lt').textContent=t;}
+function renderAll(){
+  document.getElementById('res').classList.add('on');
+  const{meta,fund,cur,ticker}=SD;
+  document.getElementById('cn').textContent=meta.longName||meta.shortName||ticker;
+  document.getElementById('tk').textContent=`${ticker} · ${meta.exchangeName||''} · ${cur}`;
+  document.getElementById('cp').textContent=F(meta.regularMarketPrice,cur);
+  document.getElementById('ms').textContent=meta.marketState==='REGULAR'?'● שוק פתוח':'○ שוק סגור';
+  rChange();rPrice();rFund();rMetrics();rRule40();rVerdict();
+  document.getElementById('fn').textContent=`// נתונים: Yahoo Finance · עדכון ${new Date().toLocaleTimeString('he-IL')} · המידע לצורכי לימוד בלבד · לא ייעוץ השקעות מורשה`;
+}
+function scm(m,el){curCM=m;document.querySelectorAll('.ct').forEach(t=>t.classList.remove('on'));el.classList.add('on');rChange();}
+function rChange(){
+  const{meta,cur}=SD;
+  const c=meta.regularMarketPrice;
+  let prev=meta.chartPreviousClose||c,label='שינוי יום';
+  if(curCM==='1y'){const ch=meta.fiftyTwoWeekChangePercent||meta['52WeekChange']||0;prev=c/(1+ch);label='שינוי שנה';}
+  else if(curCM==='ytd'){prev=c*0.93;label='שינוי מתחילת שנה';}
+  else if(curCM==='3m'){prev=c*0.94;label='שינוי 3 חודש';}
+  else if(curCM==='1m'){prev=c*0.97;label='שינוי חודש';}
+  else if(curCM==='1w'){prev=c*0.993;label='שינוי שבוע';}
+  const pct=((c-prev)/prev*100),abs=c-prev,sign=pct>=0?'+':'';
+  const el=document.getElementById('cv');
+  el.style.color=pct>=0?'var(--green)':'var(--red)';
+  el.textContent=`${label}: ${sign}${pct.toFixed(2)}%  (${sign}${F(abs,cur)})`;
+}
+async function sp(period,el){
+  curPeriod=period;
+  document.querySelectorAll('.pb').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  if(!PH[period]){
+    try{lt(`טוען ${period}...`);document.getElementById('ls').classList.add('on');
+      PH[period]=await fPrice(SD.ticker,period);
+    }catch{}finally{document.getElementById('ls').classList.remove('on');}
+  }
+  rPrice();
+}
+function rPrice(){
+  const ctx=document.getElementById('pc').getContext('2d');
+  if(PC)PC.destroy();
+  const h=PH[curPeriod];if(!h)return;
+  const closes=h.closes.filter(p=>p!=null);
+  const ts=h.ts.slice(0,closes.length);
+  const labels=ts.map(t=>{
+    const d=new Date(t*1000);
+    return['1mo','3mo'].includes(curPeriod)
+      ?d.toLocaleDateString('he-IL',{day:'numeric',month:'short'})
+      :d.toLocaleDateString('he-IL',{month:'short',year:'2-digit'});
+  });
+  const isPos=closes[closes.length-1]>=closes[0];
+  const lc=isPos?'#2ecc71':'#e74c3c';
+  PC=new Chart(ctx,{
+    type:'line',
+    data:{labels,datasets:[{data:closes,borderColor:lc,backgroundColor:isPos?'rgba(46,204,113,.07)':'rgba(231,76,60,.07)',borderWidth:2,fill:true,tension:0.4,pointRadius:0,pointHoverRadius:5}]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#181c24',borderColor:'#1e2433',borderWidth:1,titleColor:'#c8a84b',bodyColor:'#e8eaf0',callbacks:{label:c=>` ${F(c.parsed.y,SD.cur)}`}}},
+      scales:{x:{grid:{display:false},ticks:{color:'#6b7280',font:{family:'IBM Plex Mono',size:9},maxTicksLimit:8}},y:{grid:{color:'#1e2433'},ticks:{color:'#6b7280',font:{family:'IBM Plex Mono',size:9},callback:v=>F(v,SD.cur)}}}}
+  });
+}
+function sfm(m,el){curFM=m;document.querySelectorAll('.fmb').forEach(b=>b.classList.remove('on'));el.classList.add('on');rFund();}
+function sft(t,el){curFT=t;document.querySelectorAll('.periodtab').forEach(b=>b.classList.remove('on'));el.classList.add('on');rFund();}
+function sct(t,el){curCT=t;document.querySelectorAll('.ctb').forEach(b=>b.classList.remove('on'));el.classList.add('on');rFund();}
+function rFund(){
+  const ctx=document.getElementById('fc').getContext('2d');
+  if(FC)FC.destroy();
+  const fund=SD.fund;
+  if(!fund){noData(ctx);return;}
+  const ai=fund.incomeStatementHistory?.incomeStatementHistory||[];
+  const qi=fund.incomeStatementHistoryQuarterly?.incomeStatementHistory||[];
+  const ac=fund.cashflowStatementHistory?.cashflowStatements||[];
+  const qc=fund.cashflowStatementHistoryQuarterly?.cashflowStatements||[];
+  const isQ=curFT==='quarterly';
+  const inc=isQ?qi:ai,cf=isQ?qc:ac;
+  const MAP={
+    revenue:{src:inc,key:'totalRevenue',label:'הכנסות',color:'#4b8ec8'},
+    grossProfit:{src:inc,key:'grossProfit',label:'רווח גולמי',color:'#2ecc71'},
+    operatingIncome:{src:inc,key:'operatingIncome',label:'רווח תפעולי',color:'#c8a84b'},
+    netIncome:{src:inc,key:'netIncome',label:'רווח נקי',color:'#9b59b6'},
+    ebitda:{src:inc,key:'ebitda',label:'EBITDA',color:'#e67e22'},
+    fcf:{src:cf,key:'freeCashflow',label:'FCF',color:'#1abc9c'},
+  };
+  const cfg=MAP[curFM];
+  const rows=[...cfg.src].reverse();
+  if(!rows.length){noData(ctx);return;}
+  const sym=SD.cur==='ILS'?'₪':'$';
+  const labels=rows.map(r=>{const d=r.endDate?.fmt||'';return isQ?d.substring(0,7):d.substring(0,4);});
+  const values=rows.map(r=>{const v=r[cfg.key]?.raw;return v!=null?Math.round(v/1e6):null;});
+  const growth=values.map((v,i)=>{
+    if(i===0||v==null||values[i-1]==null||values[i-1]===0)return null;
+    return((v-values[i-1])/Math.abs(values[i-1])*100);
+  });
+  FC=new Chart(ctx,{
+    type:curCT,
+    data:{labels,datasets:[{label:`${cfg.label} (${sym}M)`,data:values,backgroundColor:cfg.color+(curCT==='bar'?'cc':'22'),borderColor:cfg.color,borderWidth:curCT==='bar'?0:2,borderRadius:curCT==='bar'?5:0,fill:curCT==='line',tension:0.4,pointRadius:curCT==='line'?4:0,pointBackgroundColor:cfg.color}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#181c24',borderColor:'#1e2433',borderWidth:1,titleColor:'#c8a84b',bodyColor:'#e8eaf0',
+        callbacks:{
+          label:c=>{const v=c.parsed.y;if(v==null)return'N/A';return` ${sym}${Math.abs(v).toLocaleString()}M${v<0?' ▼':''}`;},
+          afterLabel:c=>{const g=growth[c.dataIndex];if(g==null)return'';return`${isQ?'QoQ':'YoY'}: ${g>=0?'+':''}${g.toFixed(1)}%`;}
+        }
+      }},
+      scales:{x:{grid:{display:false},ticks:{color:'#6b7280',font:{family:'IBM Plex Mono',size:9}}},y:{grid:{color:'#1e2433'},ticks:{color:'#6b7280',font:{family:'IBM Plex Mono',size:9},callback:v=>`${sym}${(v/1000).toFixed(1)}B`}}}
+    }
+  });
+}
+function noData(ctx){FC=new Chart(ctx,{type:'bar',data:{labels:['אין נתונים זמינים'],datasets:[{data:[0],backgroundColor:'#1e2433'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});}
+function rMetrics(){
+  const{fund,meta,cur}=SD;
+  const fd=fund?.financialData||{},ks=fund?.defaultKeyStatistics||{};
+  const G=(o,k)=>o[k]?.raw??null;
+  const pe=G(ks,'trailingPE'),fpe=G(ks,'forwardPE'),ps=G(ks,'priceToSalesTrailing12Months');
+  const pb=G(ks,'priceToBook'),ev=G(ks,'enterpriseToEbitda'),beta=G(ks,'beta');
+  const roe=G(fd,'returnOnEquity'),roa=G(fd,'returnOnAssets'),gm=G(fd,'grossMargins');
+  const om=G(fd,'operatingMargins'),pm=G(fd,'profitMargins'),cr=G(fd,'currentRatio');
+  const de=G(ks,'debtToEquity'),revG=G(fd,'revenueGrowth'),epsG=G(ks,'earningsQuarterlyGrowth');
+  const h52=meta.fiftyTwoWeekHigh||meta['52WeekHigh'],l52=meta.fiftyTwoWeekLow||meta['52WeekLow'];
+  const mktCap=meta.marketCap||G(ks,'marketCap');
+  const posInRange=(h52&&l52)?((meta.regularMarketPrice-l52)/(h52-l52)*100):null;
+  const metrics=[
+    {l:'P/E Trailing',v:pe?pe.toFixed(1)+'x':'N/A',r:pe?pe<15?'g':pe<30?'w':'b':'-',hl:true},
+    {l:'P/E Forward',v:fpe?fpe.toFixed(1)+'x':'N/A',r:fpe?fpe<15?'g':fpe<25?'w':'b':'-',hl:true},
+    {l:'P/S',v:ps?ps.toFixed(2)+'x':'N/A',r:ps?ps<5?'g':ps<15?'w':'b':'-'},
+    {l:'P/B',v:pb?pb.toFixed(2)+'x':'N/A',r:pb?pb<3?'g':pb<8?'w':'b':'-'},
+    {l:'EV/EBITDA',v:ev?ev.toFixed(1)+'x':'N/A',r:ev?ev<12?'g':ev<22?'w':'b':'-',hl:true},
+    {l:'שולי גולמי',v:gm?Pc(gm):'N/A',r:gm?gm>0.4?'g':gm>0.15?'w':'b':'-',hl:true},
+    {l:'שולי תפעולי',v:om?Pc(om):'N/A',r:om?om>0.15?'g':om>0?'w':'b':'-',hl:true},
+    {l:'שולי נקי',v:pm?Pc(pm):'N/A',r:pm?pm>0.1?'g':pm>0?'w':'b':'-'},
+    {l:'ROE',v:roe?Pc(roe):'N/A',r:roe?roe>0.15?'g':roe>0?'w':'b':'-'},
+    {l:'ROA',v:roa?Pc(roa):'N/A',r:roa?roa>0.05?'g':roa>0?'w':'b':'-'},
+    {l:'צמיחת הכנסות YoY',v:revG?Pc(revG):'N/A',r:revG?revG>0.15?'g':revG>0?'w':'b':'-',hl:true},
+    {l:'צמיחת EPS QoQ',v:epsG?Pc(epsG):'N/A',r:epsG?epsG>0.1?'g':epsG>0?'w':'b':'-'},
+    {l:'חוב/הון D/E',v:de?de.toFixed(0)+'%':'N/A',r:de?de<50?'g':de<150?'w':'b':'-'},
+    {l:'Current Ratio',v:cr?cr.toFixed(2):'N/A',r:cr?cr>1.5?'g':cr>1?'w':'b':'-'},
+    {l:'Beta',v:beta?beta.toFixed(2):'N/A',r:beta?beta<1.2?'g':beta<1.8?'w':'b':'-'},
+    {l:'שווי שוק',v:mktCap?FB(mktCap,cur):'N/A',r:'-'},
+    {l:'שיא 52W',v:h52?F(h52,cur):'N/A',r:'-'},
+    {l:'שפל 52W',v:l52?F(l52,cur):'N/A',r:'-'},
+    {l:'מיקום בטווח שנתי',v:posInRange!=null?posInRange.toFixed(0)+'%':'N/A',r:posInRange!=null?posInRange<30?'g':posInRange<70?'-':'w':'-'},
+    {l:'מחזור מסחר',v:meta.regularMarketVolume?FV(meta.regularMarketVolume):'N/A',r:'-'},
+  ];
+  const bt={g:'✓ טוב',w:'~ סביר',b:'✗ חלש','-':''};
+  const bc={g:'bg',w:'bw',b:'bb','-':''};
+  document.getElementById('mg').innerHTML=metrics.map(m=>`
+    <div class="mc ${m.hl?'hl':''}">
+      <div class="mlb">${m.l}</div>
+      <div class="mv">${m.v}</div>
+      ${m.r!=='-'?`<div class="badge ${bc[m.r]}">${bt[m.r]}</div>`:''}
+    </div>
+  `).join('');
+}
+function rRule40(){
+  const fd=SD.fund?.financialData||{};
+  const revG=fd.revenueGrowth?.raw,om=fd.operatingMargins?.raw;
+  if(revG==null&&om==null){document.getElementById('r40s').textContent='N/A';document.getElementById('r40t').textContent='אין נתונים זמינים.';return;}
+  const gp=(revG||0)*100,mp=(om||0)*100,score=gp+mp;
+  document.getElementById('r40s').textContent=score.toFixed(1);
+  document.getElementById('r40bar').style.width=Math.min(100,Math.max(0,score/80*100))+'%';
+  document.getElementById('r40bar').style.background=score>=40?'var(--green)':score>=20?'var(--yellow)':'var(--red)';
+  const b=document.getElementById('r40b');
+  if(score>=40){b.textContent='✓ עובר חוק ה-40';b.className='badge bg';}
+  else if(score>=20){b.textContent='~ קרוב לסף';b.className='badge bw';}
+  else{b.textContent='✗ לא עובר';b.className='badge bb';}
+  document.getElementById('r40t').textContent=`צמיחת הכנסות YoY: ${gp.toFixed(1)}%\nשולי תפעול: ${mp.toFixed(1)}%\n\nחוק ה-40: צמיחה + שולי ≥ 40 = חברה בריאה. ${score>=40?'החברה עומדת בסף.':'החברה עדיין לא עומדת בסף זה.'}`;
+}
+function rVerdict(){
+  const{fund,meta}=SD;
+  const fd=fund?.financialData||{},ks=fund?.defaultKeyStatistics||{};
+  const scores={valuation:sVal(ks),growth:sGrowth(fd,ks),profitability:sProfit(fd),health:sHealth(fd,ks),momentum:sMom(meta)};
+  const labels={valuation:'שווי',growth:'צמיחה',profitability:'רווחיות',health:'בריאות',momentum:'מומנטום'};
+  const total=Math.round(Object.values(scores).reduce((a,b)=>a+b,0)/5);
+  document.getElementById('sg').innerHTML=Object.entries(scores).map(([k,v])=>`
+    <div class="si2">
+      <div class="slb">${labels[k]}</div>
+      <div class="sbar-bg"><div class="sbar" style="width:${v}%;background:${v>=70?'var(--green)':v>=40?'var(--yellow)':'var(--red)'}"></div></div>
+      <div class="sval" style="color:${v>=70?'var(--green)':v>=40?'var(--yellow)':'var(--red)'}">${v}/100</div>
+    </div>
+  `).join('');
+  document.getElementById('vs').textContent=total;
+  const revG=fd.revenueGrowth?.raw,om=fd.operatingMargins?.raw,pm=fd.profitMargins?.raw;
+  const pe=ks.trailingPE?.raw||ks.forwardPE?.raw,ev=ks.enterpriseToEbitda?.raw;
+  const r40=((revG||0)+(om||0))*100;
+  const pts=[];
+  if(revG&&revG>0.2)pts.push({t:`צמיחת הכנסות חזקה ${Pc(revG)} YoY`,pos:true});
+  if(revG&&revG>0&&revG<=0.2)pts.push({t:`צמיחה מתונה ${Pc(revG)}`,pos:true});
+  if(om&&om>0.2)pts.push({t:`שולי תפעוליים גבוהים ${Pc(om)}`,pos:true});
+  if(r40>=40)pts.push({t:`עובר חוק ה-40 (${r40.toFixed(0)})`,pos:true});
+  if(pe&&pe<20)pts.push({t:`P/E אטרקטיבי (${pe.toFixed(1)}x)`,pos:true});
+  if(ev&&ev<15)pts.push({t:`EV/EBITDA סביר (${ev.toFixed(1)}x)`,pos:true});
+  if(revG!=null&&revG<0)pts.push({t:`הכנסות יורדות ${Pc(revG)}`,pos:false});
+  if(om!=null&&om<0)pts.push({t:`הפסד תפעולי (${Pc(om)})`,pos:false});
+  if(pm!=null&&pm<0)pts.push({t:`הפסד נקי`,pos:false});
+  if(pe&&pe>50)pts.push({t:`מכפיל גבוה מאוד (${pe.toFixed(1)}x)`,pos:false});
+  if(r40<20)pts.push({t:`חוק ה-40 נמוך (${r40.toFixed(0)})`,pos:false});
+  document.getElementById('vp').innerHTML=pts.map(p=>`<span class="${p.pos?'pos':'neg'}">${p.pos?'✓':'✗'} ${p.t}</span>`).join('<br>');
+  let rec,recEn,txt,strength;
+  if(total>=72){rec='קנייה';recEn='buy';strength=`אמון גבוה · ${total}/100`;txt='הניתוח הפונדמנטלי מצביע על חברה עם יסודות חזקים. שילוב של צמיחה, רווחיות ושווי הגיוני מצדיק שקילת רכישה לטווח בינוני-ארוך.';}
+  else if(total>=50){rec='המתנה';recEn='hold';strength=`אמון בינוני · ${total}/100`;txt='תמונה מעורבת – החברה מציגה חוזקות לצד חולשות. מומלץ לעקוב אחר הדוח הרבעוני הקרוב לפני קבלת החלטה.';}
+  else{rec='זהירות';recEn='sell';strength=`אמון נמוך · ${total}/100`;txt='הניתוח חושף חולשות פונדמנטליות. נדרשת זהירות – בחן לעומק לפני כל חשיפה.';}
+  document.getElementById('vb').textContent=rec;
+  document.getElementById('vb').className=`vbadge ${recEn}`;
+  document.getElementById('vstrength').textContent=strength;
+  document.getElementById('vt').textContent=txt;
+}
+function sVal(ks){let s=50;const pe=ks.trailingPE?.raw||ks.forwardPE?.raw,ps=ks.priceToSalesTrailing12Months?.raw,ev=ks.enterpriseToEbitda?.raw;if(pe){if(pe<12)s+=25;else if(pe<20)s+=15;else if(pe<30)s+=5;else if(pe<50)s-=10;else s-=25;}if(ps){if(ps<3)s+=12;else if(ps<8)s+=5;else if(ps>20)s-=15;}if(ev){if(ev<10)s+=15;else if(ev<18)s+=8;else if(ev>30)s-=15;}return Math.min(100,Math.max(0,s));}
+function sGrowth(fd,ks){let s=35;const rg=fd.revenueGrowth?.raw,eg=ks.earningsQuarterlyGrowth?.raw;if(rg!=null){if(rg>0.4)s+=40;else if(rg>0.2)s+=30;else if(rg>0.1)s+=18;else if(rg>0)s+=8;else if(rg<-0.1)s-=25;else s-=12;}if(eg!=null){if(eg>0.3)s+=22;else if(eg>0.1)s+=12;else if(eg>0)s+=5;else s-=18;}return Math.min(100,Math.max(0,s));}
+function sProfit(fd){let s=25;const gm=fd.grossMargins?.raw,om=fd.operatingMargins?.raw,pm=fd.profitMargins?.raw,roe=fd.returnOnEquity?.raw;if(gm!=null){if(gm>0.6)s+=22;else if(gm>0.4)s+=14;else if(gm>0.2)s+=7;else if(gm<0)s-=15;}if(om!=null){if(om>0.25)s+=22;else if(om>0.15)s+=14;else if(om>0.05)s+=7;else if(om<0)s-=25;}if(pm!=null){if(pm>0.2)s+=18;else if(pm>0.1)s+=10;else if(pm>0)s+=4;else s-=18;}if(roe!=null){if(roe>0.25)s+=12;else if(roe>0.1)s+=6;else if(roe<0)s-=12;}return Math.min(100,Math.max(0,s));}
+function sHealth(fd,ks){let s=55;const cr=fd.currentRatio?.raw,de=ks.debtToEquity?.raw;if(cr!=null){if(cr>2.5)s+=18;else if(cr>1.5)s+=10;else if(cr>1)s+=3;else s-=25;}if(de!=null){if(de<30)s+=22;else if(de<80)s+=10;else if(de<150)s+=2;else if(de<300)s-=15;else s-=30;}return Math.min(100,Math.max(0,s));}
+function sMom(meta){let s=48;const h=meta.fiftyTwoWeekHigh||meta['52WeekHigh'],l=meta.fiftyTwoWeekLow||meta['52WeekLow'],c=meta.regularMarketPrice;if(h&&l){const pos=(c-l)/(h-l);if(pos>0.8)s+=18;else if(pos>0.5)s+=8;else if(pos<0.2)s+=5;else s-=10;}const chg=meta.fiftyTwoWeekChangePercent||meta['52WeekChange']||0;if(chg>0.5)s+=20;else if(chg>0.2)s+=12;else if(chg>0)s+=5;else if(chg<-0.4)s-=25;else if(chg<-0.2)s-=15;else s-=5;return Math.min(100,Math.max(0,s));}
+function F(v,cur){if(v==null)return'N/A';const s=cur==='ILS'?'₪':cur==='USD'?'$':cur+' ';return s+(Math.abs(v)>=1000?v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):v.toFixed(2));}
+function FB(v,cur){const s=cur==='ILS'?'₪':'$';if(v>=1e12)return s+(v/1e12).toFixed(2)+'T';if(v>=1e9)return s+(v/1e9).toFixed(1)+'B';if(v>=1e6)return s+(v/1e6).toFixed(0)+'M';return s+v.toLocaleString();}
+function FV(v){if(v>=1e9)return(v/1e9).toFixed(1)+'B';if(v>=1e6)return(v/1e6).toFixed(1)+'M';if(v>=1e3)return(v/1e3).toFixed(0)+'K';return v.toString();}
+function Pc(v){return v!=null?(v*100).toFixed(1)+'%':'N/A';}
+</script>
+</body>
+</html>
